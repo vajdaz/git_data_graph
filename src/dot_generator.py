@@ -406,6 +406,53 @@ def generate_index_table(entries):
     return "\n".join(lines)
 
 
+def generate_rank_constraints(repo, head_target_ref_name):
+    # type: (Repository, str) -> List[str]
+    """
+    Generate rank constraints to keep object types at the same level.
+    
+    Args:
+        repo: Repository object with all data.
+        head_target_ref_name: Name of the ref HEAD points to.
+        
+    Returns:
+        List of DOT rank constraint strings.
+    """
+    parts = []
+    
+    # Keep all references (branches, tags, HEAD) at the same rank
+    ref_node_ids = []
+    for ref in repo.refs:
+        node_id = "ref_" + ref.name.replace("/", "_").replace(".", "_")
+        ref_node_ids.append('"{}"'.format(node_id))
+    if repo.head:
+        ref_node_ids.append('"HEAD"')
+    
+    if ref_node_ids:
+        parts.append("    // Rank constraint: references at same level")
+        parts.append("    {{ rank=same; {} }}".format("; ".join(ref_node_ids)))
+        parts.append("")
+    
+    # Keep all commits at the same rank
+    if repo.commits:
+        commit_ids = ['"{}"'.format(c.hash) for c in repo.commits]
+        parts.append("    // Rank constraint: commits at same level")
+        parts.append("    {{ rank=same; {} }}".format("; ".join(commit_ids)))
+        parts.append("")
+    
+    # Keep all blobs at the same rank
+    if repo.blobs:
+        blob_ids = ['"{}"'.format(b.hash) for b in repo.blobs]
+        parts.append("    // Rank constraint: blobs at same level")
+        parts.append("    {{ rank=same; {} }}".format("; ".join(blob_ids)))
+        parts.append("")
+    
+    # Note: Trees are NOT constrained to the same rank because they
+    # represent a directory structure with different nesting levels
+    
+    return parts
+
+
 def generate_dot(repo, include_index=True, repo_path=None):
     # type: (Repository, bool, str) -> str
     """
@@ -461,6 +508,10 @@ def generate_dot(repo, include_index=True, repo_path=None):
     if repo.head:
         parts.append(generate_head_node(repo.head))
     parts.append("")
+    
+    # Add rank constraints to keep object types at same level
+    rank_constraints = generate_rank_constraints(repo, head_target_ref_name)
+    parts.extend(rank_constraints)
     
     # Generate edges section
     parts.append("    // Commit edges")
