@@ -21,3 +21,19 @@ The graph should contain:
   - Tag references
   - HEAD
 
+The table of index entries should contain:
+
+- Hash
+- Path
+
+## Usage
+
+The tool should have following CLI interface:
+
+```
+git_data_graph [-o output_file_path] [path_to_git_repo] 
+```
+
+If `output_file_path` is not specified then a file `git_data_graph.svg` shall be created in the current working path.
+
+If `path_to_git_repo` is not specified then the current working path should be considered as the input path to the Git repo.
