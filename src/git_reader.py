@@ -351,6 +351,29 @@ def get_head_target_ref(repo_path):
     return None
 
 
+def ref_exists(repo_path, ref_name):
+    # type: (str, str) -> bool
+    """
+    Check if a reference exists in the repository.
+    
+    Args:
+        repo_path: Path to the Git repository.
+        ref_name: Full reference name (e.g., "refs/heads/main").
+        
+    Returns:
+        True if the reference exists, False otherwise.
+    """
+    try:
+        returncode, stdout, stderr = run_command(
+            ["git", "show-ref", "--verify", "--quiet", ref_name],
+            cwd=repo_path,
+            check=False
+        )
+        return returncode == 0
+    except CommandError:
+        return False
+
+
 def read_index_entries(repo_path):
     # type: (str) -> List[IndexEntry]
     """

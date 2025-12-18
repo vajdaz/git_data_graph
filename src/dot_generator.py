@@ -11,7 +11,7 @@ from .model import (
     Repository, GitCommit, GitTree, GitBlob, GitTag,
     GitRef, RefType, IndexEntry
 )
-from .git_reader import get_head_target_ref
+from .git_reader import get_head_target_ref, ref_exists
 
 
 # Visual styling constants
@@ -219,6 +219,46 @@ def generate_ref_node(ref, is_head_target=False):
     )
 
 
+def generate_nonexistent_ref_node(ref_name):
+    # type: (str) -> str
+    """
+    Generate DOT node for a non-existing reference (e.g., unborn branch).
+    
+    This is used when HEAD points to a branch that doesn't exist yet,
+    such as in an empty repository.
+    
+    Args:
+        ref_name: Full reference name (e.g., "refs/heads/main").
+        
+    Returns:
+        DOT node definition string with dashed style.
+    """
+    # Extract short name from full ref name
+    prefixes = [
+        "refs/heads/",
+        "refs/remotes/",
+        "refs/tags/",
+    ]
+    short_name = ref_name
+    for prefix in prefixes:
+        if ref_name.startswith(prefix):
+            short_name = ref_name[len(prefix):]
+            break
+    
+    label = escape_dot_string(short_name)
+    
+    # Node ID uses the full name to avoid conflicts
+    node_id = "ref_" + ref_name.replace("/", "_").replace(".", "_")
+    
+    # Use dashed style for non-existing references
+    return '    "{}" [label="{}", shape={}, style="dashed,bold", fillcolor="{}"];'.format(
+        node_id,
+        label,
+        SHAPES["ref"],
+        COLORS["ref"]
+    )
+
+
 def generate_head_node(head):
     # type: (GitRef) -> str
     """
@@ -406,14 +446,15 @@ def generate_index_table(entries):
     return "\n".join(lines)
 
 
-def generate_rank_constraints(repo, head_target_ref_name):
-    # type: (Repository, str) -> List[str]
+def generate_rank_constraints(repo, head_target_ref_name, head_target_exists=True):
+    # type: (Repository, str, bool) -> List[str]
     """
     Generate rank constraints to keep object types at the same level.
     
     Args:
         repo: Repository object with all data.
         head_target_ref_name: Name of the ref HEAD points to.
+        head_target_exists: Whether the HEAD target reference exists.
         
     Returns:
         List of DOT rank constraint strings.
@@ -425,6 +466,12 @@ def generate_rank_constraints(repo, head_target_ref_name):
     for ref in repo.refs:
         node_id = "ref_" + ref.name.replace("/", "_").replace(".", "_")
         ref_node_ids.append('"{}"'.format(node_id))
+    
+    # Include non-existing reference node if HEAD points to unborn branch
+    if head_target_ref_name and not head_target_exists:
+        node_id = "ref_" + head_target_ref_name.replace("/", "_").replace(".", "_")
+        ref_node_ids.append('"{}"'.format(node_id))
+    
     if repo.head:
         ref_node_ids.append('"HEAD"')
     
@@ -473,8 +520,12 @@ def generate_dot(repo, include_index=True, repo_path=None):
     
     # Determine HEAD target for highlighting
     head_target_ref_name = ""
+    head_target_exists = True
     if repo_path:
         head_target_ref_name = get_head_target_ref(repo_path) or ""
+        # Check if the HEAD target reference actually exists
+        if head_target_ref_name:
+            head_target_exists = ref_exists(repo_path, head_target_ref_name)
     
     # Generate nodes section
     parts.append("    // Commit nodes")
@@ -504,13 +555,17 @@ def generate_dot(repo, include_index=True, repo_path=None):
         is_head_target = (ref.name == head_target_ref_name)
         parts.append(generate_ref_node(ref, is_head_target))
     
+    # Non-existing reference node (e.g., unborn branch in empty repo)
+    if head_target_ref_name and not head_target_exists:
+        parts.append(generate_nonexistent_ref_node(head_target_ref_name))
+    
     # HEAD node
     if repo.head:
         parts.append(generate_head_node(repo.head))
     parts.append("")
     
     # Add rank constraints to keep object types at same level
-    rank_constraints = generate_rank_constraints(repo, head_target_ref_name)
+    rank_constraints = generate_rank_constraints(repo, head_target_ref_name, head_target_exists)
     parts.extend(rank_constraints)
     
     # Generate edges section
