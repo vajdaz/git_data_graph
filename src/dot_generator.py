@@ -368,7 +368,7 @@ def generate_ref_edges(ref):
     node_id = "ref_" + ref.name.replace("/", "_").replace(".", "_")
     
     if ref.target_hash:
-        edges.append('    "{}" -> "{}" [style=dotted, color=gray];'.format(
+        edges.append('    "{}" -> "{}" [style=solid, color=gray];'.format(
             node_id,
             ref.target_hash
         ))
