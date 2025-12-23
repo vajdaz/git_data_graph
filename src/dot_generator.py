@@ -376,6 +376,36 @@ def generate_ref_edges(ref):
     return edges
 
 
+def generate_upstream_edges(refs):
+    # type: (List[GitRef]) -> List[str]
+    """
+    Generate edges from local branches to their remote tracking branches.
+    
+    Args:
+        refs: List of GitRef objects.
+        
+    Returns:
+        List of DOT edge definition strings.
+    """
+    edges = []
+    
+    # Build a set of existing ref names for quick lookup
+    existing_refs = set(ref.name for ref in refs)
+    
+    for ref in refs:
+        if ref.ref_type == RefType.LOCAL_BRANCH and ref.upstream:
+            # Check if the upstream ref exists in our refs list
+            if ref.upstream in existing_refs:
+                local_node_id = "ref_" + ref.name.replace("/", "_").replace(".", "_")
+                upstream_node_id = "ref_" + ref.upstream.replace("/", "_").replace(".", "_")
+                edges.append('    "{}" -> "{}" [style=dashed, color=gray];'.format(
+                    local_node_id,
+                    upstream_node_id
+                ))
+    
+    return edges
+
+
 def generate_head_edges(head, head_target_ref_name):
     # type: (GitRef, str) -> List[str]
     """
@@ -592,6 +622,13 @@ def generate_dot(repo, include_index=True, repo_path=None):
     for ref in repo.refs:
         edges = generate_ref_edges(ref)
         parts.extend(edges)
+    
+    # Upstream tracking edges (local branch -> remote tracking branch)
+    upstream_edges = generate_upstream_edges(repo.refs)
+    if upstream_edges:
+        parts.append("")
+        parts.append("    // Upstream tracking edges")
+        parts.extend(upstream_edges)
     
     # HEAD edges
     if repo.head:

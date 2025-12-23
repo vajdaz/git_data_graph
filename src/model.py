@@ -185,8 +185,8 @@ class GitTag(GitObject):
 class GitRef(object):
     """Represents a Git reference (branch, tag ref, or HEAD)."""
     
-    def __init__(self, name, target_hash, ref_type):
-        # type: (str, str, RefType) -> None
+    def __init__(self, name, target_hash, ref_type, upstream=None):
+        # type: (str, str, RefType, Optional[str]) -> None
         """
         Initialize a Git reference.
         
@@ -194,10 +194,12 @@ class GitRef(object):
             name: The full reference name (e.g., "refs/heads/main").
             target_hash: The hash this reference points to.
             ref_type: The type of reference.
+            upstream: The upstream (remote tracking) branch name for local branches.
         """
         self.name = name
         self.target_hash = target_hash
         self.ref_type = ref_type
+        self.upstream = upstream
     
     @property
     def short_name(self):

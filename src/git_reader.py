@@ -229,7 +229,7 @@ def list_references(repo_path):
     """
     List all references in the repository.
     
-    Uses: git for-each-ref --format='%(refname) %(objectname)'
+    Uses: git for-each-ref --format='%(refname) %(objectname) %(upstream)'
     
     Args:
         repo_path: Path to the Git repository.
@@ -237,8 +237,10 @@ def list_references(repo_path):
     Returns:
         List of GitRef objects.
     """
+    # Use a delimiter to handle empty upstream values
+    delimiter = "|||"
     returncode, stdout, stderr = run_command(
-        ["git", "for-each-ref", "--format=%(refname) %(objectname)"],
+        ["git", "for-each-ref", "--format=%(refname)" + delimiter + "%(objectname)" + delimiter + "%(upstream)"],
         cwd=repo_path,
         check=True
     )
@@ -247,10 +249,11 @@ def list_references(repo_path):
     for line in stdout.strip().split("\n"):
         if not line:
             continue
-        parts = line.split()
+        parts = line.split(delimiter)
         if len(parts) >= 2:
             ref_name = parts[0]
             target_hash = parts[1]
+            upstream = parts[2] if len(parts) >= 3 and parts[2] else None
             
             # Determine ref type
             if ref_name.startswith("refs/heads/"):
@@ -265,7 +268,8 @@ def list_references(repo_path):
             refs.append(GitRef(
                 name=ref_name,
                 target_hash=target_hash,
-                ref_type=ref_type
+                ref_type=ref_type,
+                upstream=upstream
             ))
     
     return refs
