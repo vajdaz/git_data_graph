@@ -276,21 +276,22 @@ def generate_head_node(head):
     )
 
 
-def generate_commit_edges(commit):
-    # type: (GitCommit) -> List[str]
+def generate_commit_edges(commit, short_mode=False):
+    # type: (GitCommit, bool) -> List[str]
     """
     Generate edges from a commit to its parents and tree.
     
     Args:
         commit: GitCommit object.
+        short_mode: If True, skip tree edge (only show parent edges).
         
     Returns:
         List of DOT edge definition strings.
     """
     edges = []
     
-    # Edge to tree
-    if commit.tree_hash:
+    # Edge to tree (skip in short mode)
+    if commit.tree_hash and not short_mode:
         edges.append('    "{}" -> "{}" [color=darkgreen];'.format(
             commit.hash,
             commit.tree_hash
@@ -476,8 +477,8 @@ def generate_index_table(entries):
     return "\n".join(lines)
 
 
-def generate_rank_constraints(repo, head_target_ref_name, head_target_exists=True):
-    # type: (Repository, str, bool) -> List[str]
+def generate_rank_constraints(repo, head_target_ref_name, head_target_exists=True, short_mode=False):
+    # type: (Repository, str, bool, bool) -> List[str]
     """
     Generate rank constraints to keep object types at the same level.
     
@@ -485,6 +486,7 @@ def generate_rank_constraints(repo, head_target_ref_name, head_target_exists=Tru
         repo: Repository object with all data.
         head_target_ref_name: Name of the ref HEAD points to.
         head_target_exists: Whether the HEAD target reference exists.
+        short_mode: If True, skip blob rank constraints (blobs not shown).
         
     Returns:
         List of DOT rank constraint strings.
@@ -517,8 +519,8 @@ def generate_rank_constraints(repo, head_target_ref_name, head_target_exists=Tru
         parts.append("    {{ rank=same; {} }}".format("; ".join(commit_ids)))
         parts.append("")
     
-    # Keep all blobs at the same rank
-    if repo.blobs:
+    # Keep all blobs at the same rank (skip in short mode)
+    if repo.blobs and not short_mode:
         blob_ids = ['"{}"'.format(b.hash) for b in repo.blobs]
         parts.append("    // Rank constraint: blobs at same level")
         parts.append("    {{ rank=same; {} }}".format("; ".join(blob_ids)))
@@ -530,8 +532,8 @@ def generate_rank_constraints(repo, head_target_ref_name, head_target_exists=Tru
     return parts
 
 
-def generate_dot(repo, include_index=True, repo_path=None):
-    # type: (Repository, bool, str) -> str
+def generate_dot(repo, include_index=True, repo_path=None, short_mode=False):
+    # type: (Repository, bool, str, bool) -> str
     """
     Generate complete DOT source for a repository.
     
@@ -539,6 +541,7 @@ def generate_dot(repo, include_index=True, repo_path=None):
         repo: Repository object with all data.
         include_index: Whether to include the index table.
         repo_path: Path to the repository (for HEAD resolution).
+        short_mode: If True, show only references and commits (hide trees, blobs, index).
         
     Returns:
         Complete DOT source string.
@@ -563,15 +566,19 @@ def generate_dot(repo, include_index=True, repo_path=None):
         parts.append(generate_commit_node(commit))
     parts.append("")
     
-    parts.append("    // Tree nodes")
-    for tree in repo.trees:
-        parts.append(generate_tree_node(tree))
-    parts.append("")
+    # Tree nodes (skip in short mode)
+    if not short_mode:
+        parts.append("    // Tree nodes")
+        for tree in repo.trees:
+            parts.append(generate_tree_node(tree))
+        parts.append("")
     
-    parts.append("    // Blob nodes")
-    for blob in repo.blobs:
-        parts.append(generate_blob_node(blob))
-    parts.append("")
+    # Blob nodes (skip in short mode)
+    if not short_mode:
+        parts.append("    // Blob nodes")
+        for blob in repo.blobs:
+            parts.append(generate_blob_node(blob))
+        parts.append("")
     
     if repo.tags:
         parts.append("    // Tag object nodes")
@@ -595,21 +602,23 @@ def generate_dot(repo, include_index=True, repo_path=None):
     parts.append("")
     
     # Add rank constraints to keep object types at same level
-    rank_constraints = generate_rank_constraints(repo, head_target_ref_name, head_target_exists)
+    rank_constraints = generate_rank_constraints(repo, head_target_ref_name, head_target_exists, short_mode)
     parts.extend(rank_constraints)
     
     # Generate edges section
     parts.append("    // Commit edges")
     for commit in repo.commits:
-        edges = generate_commit_edges(commit)
+        edges = generate_commit_edges(commit, short_mode)
         parts.extend(edges)
     parts.append("")
     
-    parts.append("    // Tree edges")
-    for tree in repo.trees:
-        edges = generate_tree_edges(tree)
-        parts.extend(edges)
-    parts.append("")
+    # Tree edges (skip in short mode)
+    if not short_mode:
+        parts.append("    // Tree edges")
+        for tree in repo.trees:
+            edges = generate_tree_edges(tree)
+            parts.extend(edges)
+        parts.append("")
     
     if repo.tags:
         parts.append("    // Tag edges")
@@ -636,8 +645,8 @@ def generate_dot(repo, include_index=True, repo_path=None):
         parts.extend(edges)
     parts.append("")
     
-    # Index table
-    if include_index and repo.index_entries:
+    # Index table (skip in short mode)
+    if include_index and repo.index_entries and not short_mode:
         parts.append(generate_index_table(repo.index_entries))
         parts.append("")
     

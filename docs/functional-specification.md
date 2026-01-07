@@ -51,7 +51,7 @@ The tool should display ALL objects in the repository, including unreachable/orp
 The tool should have following CLI interface:
 
 ```
-git_data_graph [-h] [-o OUTPUT] [--no-index] [--force] [path]
+git_data_graph [-h] [-o OUTPUT] [--no-index] [-s] [--force] [path]
 ```
 
 ### Arguments
@@ -61,6 +61,7 @@ git_data_graph [-h] [-o OUTPUT] [--no-index] [--force] [path]
 | `path` | Path to Git repository (default: current working directory) |
 | `-o, --output` | Output file path (default: `git_data_graph.svg`) |
 | `--no-index` | Exclude index table from output |
+| `-s, --short` | Short mode: show only references and commits (hide trees, blobs, and index) |
 | `--force` | Skip confirmation prompt for large repositories |
 | `-h, --help` | Show help message |
 

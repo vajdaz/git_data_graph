@@ -279,7 +279,7 @@ None required. The design intentionally minimizes dependencies.
 ## 7. CLI Interface
 
 ```
-usage: git_data_graph [-h] [-o OUTPUT] [--no-index] [--force] [path]
+usage: git_data_graph [-h] [-o OUTPUT] [--no-index] [-s] [--force] [path]
 
 Generate a graph visualization of Git repository internals.
 
@@ -291,6 +291,7 @@ optional arguments:
   -o OUTPUT, --output OUTPUT
                         Output file path (default: git_data_graph.svg)
   --no-index            Exclude index table from output
+  -s, --short           Short mode: show only refs and commits (hide trees/blobs)
   --force               Skip confirmation for large repositories
 ```
 

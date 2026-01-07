@@ -106,7 +106,7 @@ git_data_graph -o graph.pdf
 ### Command-Line Options
 
 ```
-usage: git_data_graph [-h] [-o OUTPUT] [--no-index] [--force] [--version] [path]
+usage: git_data_graph [-h] [-o OUTPUT] [--no-index] [-s] [--force] [--version] [path]
 
 Generate a graph visualization of Git repository internals.
 
@@ -118,6 +118,7 @@ optional arguments:
   -o OUTPUT, --output OUTPUT
                         Output file path (default: git_data_graph.svg)
   --no-index            Exclude index table from output
+  -s, --short           Short mode: show only references and commits
   --force               Process large repositories without aborting
   --version             Show program version and exit
 ```
@@ -136,6 +137,9 @@ git_data_graph -o graph.png
 
 # Exclude the index table
 git_data_graph --no-index
+
+# Short mode: show only references and commits (no trees/blobs)
+git_data_graph --short
 
 # Process a large repository (>100 objects)
 git_data_graph --force

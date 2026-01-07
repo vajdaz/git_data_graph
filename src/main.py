@@ -85,6 +85,12 @@ Exit codes:
     )
     
     parser.add_argument(
+        "-s", "--short",
+        action="store_true",
+        help="Short mode: show only references and commits (hide trees, blobs, and index)"
+    )
+    
+    parser.add_argument(
         "--force",
         action="store_true",
         help="Process large repositories (>{} objects) without aborting".format(
@@ -195,7 +201,9 @@ def main(args=None):
     # Read repository data
     print("Reading repository data...")
     try:
-        include_index = not parsed_args.no_index
+        # Short mode implies no-index
+        include_index = not parsed_args.no_index and not parsed_args.short
+        short_mode = parsed_args.short
         repo = read_repository(repo_path, include_index=include_index)
     except CommandError as e:
         print("Error: Failed to read repository data: {}".format(e), file=sys.stderr)
@@ -214,7 +222,7 @@ def main(args=None):
     
     # Generate DOT source
     print("Generating graph...")
-    dot_source = generate_dot(repo, include_index=include_index, repo_path=repo_path)
+    dot_source = generate_dot(repo, include_index=include_index, repo_path=repo_path, short_mode=short_mode)
     
     # Render to output file
     print("Rendering to {}...".format(output_path))
