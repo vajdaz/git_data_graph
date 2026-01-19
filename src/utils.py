@@ -106,6 +106,28 @@ def is_git_repository(path):
         return False
 
 
+def is_bare_repository(path):
+    # type: (str) -> bool
+    """
+    Check if the given path is a bare Git repository.
+    
+    Args:
+        path: Path to check.
+        
+    Returns:
+        True if the repository is bare, False otherwise.
+    """
+    try:
+        returncode, stdout, stderr = run_command(
+            ["git", "rev-parse", "--is-bare-repository"],
+            cwd=path,
+            check=False
+        )
+        return returncode == 0 and stdout.strip().lower() == "true"
+    except CommandError:
+        return False
+
+
 def get_git_dir(path):
     # type: (str) -> Optional[str]
     """

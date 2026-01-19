@@ -10,7 +10,7 @@ from .model import (
     Repository, GitCommit, GitTree, GitBlob, GitTag,
     GitRef, RefType, IndexEntry, TreeEntry
 )
-from .utils import run_command, CommandError
+from .utils import run_command, CommandError, is_bare_repository
 
 
 def list_all_objects(repo_path):
@@ -255,6 +255,11 @@ def list_references(repo_path):
             target_hash = parts[1]
             upstream = parts[2] if len(parts) >= 3 and parts[2] else None
             
+            # Skip remote HEAD references (e.g., refs/remotes/origin/HEAD)
+            # These are not relevant for visualization
+            if ref_name.startswith("refs/remotes/") and ref_name.endswith("/HEAD"):
+                continue
+            
             # Determine ref type
             if ref_name.startswith("refs/heads/"):
                 ref_type = RefType.LOCAL_BRANCH
@@ -479,10 +484,11 @@ def read_repository(repo_path, include_index=True):
     for ref in refs:
         repo.add_ref(ref)
     
-    # Resolve HEAD
-    head = resolve_head(repo_path)
-    if head:
-        repo.set_head(head)
+    # Resolve HEAD (skip for bare repositories as HEAD is not interesting there)
+    if not is_bare_repository(repo_path):
+        head = resolve_head(repo_path)
+        if head:
+            repo.set_head(head)
     
     # Read index if requested
     if include_index:
